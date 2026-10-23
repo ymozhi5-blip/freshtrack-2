@@ -1,0 +1,442 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FreshTrack | Smart Food Expiry Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="/">
+      <span class="brand-mark">✳</span>
+      <span>freshtrack<small>SMART FOOD CARE</small></span>
+    </a>
+
+    <div class="nav-label">WORKSPACE</div>
+    <a class="nav-item active" href="#overview"><span>▦</span> Overview</a>
+    <a class="nav-item" href="#inventory"><span>▤</span> My inventory <b>{{ stats.total }}</b></a>
+    <a class="nav-item" href="#alerts"><span>♧</span> Expiry alerts</a>
+    <a class="nav-item" href="#history"><span>↻</span> Feedback &amp; history</a>
+
+    <div class="sidebar-bottom">
+      <div class="eco-card">
+        <span class="eco-icon">♻</span>
+        <strong>Waste less, live fresh.</strong>
+        <p>Small reminders can make a big difference to food waste.</p>
+      </div>
+      <div class="profile">
+        <div class="avatar">FT</div>
+        <div><strong>My household</strong><small>Personal dashboard</small></div>
+        <span class="profile-dots">•••</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">YOUR KITCHEN, IN CONTROL</div>
+        <h1>Food expiry dashboard <span class="wave">✦</span></h1>
+        <p class="subhead">Know what to use next. Keep good food out of the bin.</p>
+      </div>
+      <div class="today-pill"><span class="live-dot"></span> Today <strong>{{ today }}</strong></div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <section id="overview" class="stats-grid">
+      <article class="stat-card total-card">
+        <div class="stat-top"><span>Total tracked items</span><span class="stat-icon">▤</span></div>
+        <div class="stat-number">{{ stats.total }}</div>
+        <div class="stat-foot">In your food inventory</div>
+        <div class="stat-line"><span style="width:72%"></span></div>
+      </article>
+
+      <article class="stat-card fresh-card">
+        <div class="stat-top"><span>Looking fresh</span><span class="stat-icon">✿</span></div>
+        <div class="stat-number">{{ stats.fresh }}</div>
+        <div class="stat-foot">More than 7 days left</div>
+        <div class="stat-line"><span style="width:82%"></span></div>
+      </article>
+
+      <article class="stat-card soon-card">
+        <div class="stat-top"><span>Use these soon</span><span class="stat-icon">◷</span></div>
+        <div class="stat-number">{{ stats.soon }}</div>
+        <div class="stat-foot">Expiring within 7 days</div>
+        <div class="stat-line"><span style="width:55%"></span></div>
+      </article>
+
+      <article class="stat-card expired-card">
+        <div class="stat-top"><span>Past expiry</span><span class="stat-icon">!</span></div>
+        <div class="stat-number">{{ stats.expired }}</div>
+        <div class="stat-foot">Review these items</div>
+        <div class="stat-line"><span style="width:28%"></span></div>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <div class="panel add-panel">
+        <div class="panel-heading">
+          <div><div class="eyebrow">QUICK CAPTURE</div><h2>Add food to inventory</h2></div>
+          <span class="heading-icon">＋</span>
+        </div>
+
+        <p class="muted">Add an item manually or attach a photo. This starter dashboard stores your item and tracks its dates.</p>
+
+        <form action="{{ url_for('add_item') }}" method="post" enctype="multipart/form-data" id="addForm">
+          <label class="upload-zone" for="photo">
+            <span class="camera-icon">▧</span>
+            <span><strong>Upload food photo</strong><small>JPG, PNG or WEBP · Optional</small></span>
+            <span class="upload-action">Browse</span>
+            <input id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp">
+          </label>
+
+          <div id="fileName" class="file-name"></div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="name">Food item name *</label>
+              <input id="name" name="name" placeholder="e.g. Apples" required>
+            </div>
+            <div class="field">
+              <label for="category">Category</label>
+              <select id="category" name="category">
+                <option>Fruit</option><option>Vegetable</option><option>Dairy</option>
+                <option>Bakery</option><option>Meat / Fish</option><option>Pantry</option><option>Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="purchase_date">Purchase date *</label>
+              <input id="purchase_date" name="purchase_date" type="date" required>
+            </div>
+            <div class="field">
+              <label for="expiry_date">Expiry date *</label>
+              <input id="expiry_date" name="expiry_date" type="date" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="storage">Storage type</label>
+              <select id="storage" name="storage">
+                <option>Refrigerated</option><option>Frozen</option>
+                <option>Room temperature</option><option>Cool, dry place</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="expiry_source">Expiry date type</label>
+              <select id="expiry_source" name="expiry_source">
+                <option>Actual / printed</option><option>Predicted</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="primary-button" type="submit">＋ &nbsp; Save to inventory <span>→</span></button>
+          <div class="privacy-note">✦ Your inventory is saved locally in this project.</div>
+        </form>
+      </div>
+
+      <div class="right-column">
+        <section id="alerts" class="panel alert-panel">
+          <div class="panel-heading">
+            <div><div class="eyebrow">STAY AHEAD</div><h2>Expiry alerts</h2></div>
+            <span class="heading-icon amber">♧</span>
+          </div>
+
+          {% set urgent = items|selectattr('days_left', 'le', 7)|list %}
+          {% if urgent %}
+            {% for item in urgent[:4] %}
+              <div class="alert-row">
+                <div class="food-emoji">{{ '🍎' if 'apple' in item.name|lower else ('🥛' if 'milk' in item.name|lower else ('🍅' if 'tomato' in item.name|lower else '🥬')) }}</div>
+                <div class="alert-copy">
+                  <strong>{{ item.name }}</strong>
+                  <small>
+                    {% if item.days_left < 0 %}
+                      {% if item.in_grace %}Grace period · review today{% else %}Past expiry · check before use{% endif %}
+                    {% elif item.days_left == 0 %}
+                      Expiry day · last chance to use
+                    {% else %}
+                      {{ item.days_left }} day{% if item.days_left != 1 %}s{% endif %} until expiry
+                    {% endif %}
+                  </small>
+                </div>
+                <span class="alert-date {% if item.days_left <= 1 %}danger{% endif %}">
+                  {% if item.days_left < 0 %}Expired{% elif item.days_left == 0 %}Today{% else %}{{ item.days_left }}d left{% endif %}
+                </span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <span>✧</span><strong>All clear for now</strong>
+              <p>Add food items to see upcoming expiry alerts here.</p>
+            </div>
+          {% endif %}
+
+          <div class="alert-legend">
+            <span><i class="legend-dot yellow"></i> 7-day early reminder</span>
+            <span><i class="legend-dot red"></i> Expiry day / past expiry</span>
+          </div>
+        </section>
+
+        <section class="panel recipe-panel">
+          <div class="panel-heading">
+            <div><div class="eyebrow">COOK SMARTER</div><h2>Recipe inspiration</h2></div>
+            <span class="heading-icon green">✣</span>
+          </div>
+
+          <p class="muted">Quick ideas based on items that need attention.</p>
+          {% set recipe_items = items|selectattr('days_left', 'le', 7)|list %}
+          {% if recipe_items %}
+            {% for item in recipe_items[:2] %}
+              <div class="recipe-row">
+                <div class="recipe-thumb">{{ '🍎' if 'apple' in item.name|lower else ('🍌' if 'banana' in item.name|lower else ('🍅' if 'tomato' in item.name|lower else '🥗')) }}</div>
+                <div><strong>{{ item.recipes[0] }}</strong><small>Use your {{ item.name|lower }} · suggested idea</small></div>
+                <span class="recipe-arrow">↗</span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="recipe-row">
+              <div class="recipe-thumb">🥕</div>
+              <div><strong>Use-it-up veggie bowl</strong><small>A flexible idea for leftover vegetables</small></div>
+              <span class="recipe-arrow">↗</span>
+            </div>
+          {% endif %}
+          <div class="recipe-note">Recipe ideas are suggestions, not a food-safety assessment.</div>
+        </section>
+      </div>
+    </section>
+
+    <section id="inventory" class="panel inventory-panel">
+      <div class="panel-heading inventory-heading">
+        <div><div class="eyebrow">YOUR DIGITAL FRIDGE</div><h2>My inventory <span class="count-badge">{{ items|length }}</span></h2></div>
+        <span class="inventory-caption">Sorted by nearest expiry</span>
+      </div>
+
+      {% if items %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>FOOD ITEM</th><th>CATEGORY / STORAGE</th><th>PURCHASED</th><th>EXPIRY DATE</th><th>STATUS</th><th>FEEDBACK</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+                <tr>
+                  <td>
+                    <div class="item-name">
+                      <div class="mini-food">{{ '🍎' if 'apple' in item.name|lower else ('🥛' if 'milk' in item.name|lower else ('🍞' if 'bread' in item.name|lower else '🥬')) }}</div>
+                      <div><strong>{{ item.name }}</strong><small>{{ item.expiry_source }}</small></div>
+                    </div>
+                  </td>
+                  <td><span class="category-text">{{ item.category }}</span><small class="table-sub">{{ item.storage }}</small></td>
+                  <td>{{ item.purchase_label }}</td>
+                  <td><strong>{{ item.expiry_label }}</strong></td>
+                  <td>
+                    <span class="status-pill {{ item.status }}">
+                      {% if item.days_left < 0 %}{% if item.in_grace %}24h grace{% else %}Expired{% endif %}
+                      {% elif item.days_left == 0 %}Expires today
+                      {% elif item.days_left <= 7 %}Use soon
+                      {% else %}Fresh{% endif %}
+                    </span>
+                    <small class="table-sub">
+                      {% if item.days_left < 0 %}{{ -item.days_left }} day(s) past
+                      {% elif item.days_left == 0 %}Last chance to use
+                      {% else %}{{ item.days_left }} day(s) left{% endif %}
+                    </small>
+                  </td>
+                  <td>
+                    <form action="{{ url_for('outcome', item_id=item.id) }}" method="post" class="feedback-form">
+                      <select name="outcome" aria-label="Log outcome for {{ item.name }}">
+                        <option value="pending" {% if item.outcome == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="used_early" {% if item.outcome == 'used_early' %}selected{% endif %}>Used early</option>
+                        <option value="used_after_first" {% if item.outcome == 'used_after_first' %}selected{% endif %}>Used after 7-day alert</option>
+                        <option value="used_after_second" {% if item.outcome == 'used_after_second' %}selected{% endif %}>Used on expiry day</option>
+                        <option value="expired_unused" {% if item.outcome == 'expired_unused' %}selected{% endif %}>Expired unused</option>
+                        <option value="discarded" {% if item.outcome == 'discarded' %}selected{% endif %}>Discarded</option>
+                      </select>
+                      <button class="tiny-save" type="submit">Save</button>
+                    </form>
+                  </td>
+                  <td>
+                    <form action="{{ url_for('delete_item', item_id=item.id) }}" method="post" onsubmit="return confirm('Remove this item?')">
+                      <button class="delete-button" title="Remove item" aria-label="Remove {{ item.name }}">×</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-inventory">
+          <div class="empty-illustration">🧺</div>
+          <h3>Your inventory is ready</h3>
+          <p>Add your first grocery item above to start tracking expiry dates.</p>
+        </div>
+      {% endif %}
+
+      <div class="inventory-footer">
+        <span>✦ Items are automatically removed 7 days after their expiry date.</span>
+        <span>Updated for today</span>
+      </div>
+    </section>
+
+    <section id="history" class="panel history-panel">
+      <div class="panel-heading">
+        <div><div class="eyebrow">LEARN FROM YOUR HABITS</div><h2>Feedback &amp; recent history</h2></div>
+        <span class="heading-icon">↻</span>
+      </div>
+
+      <p class="muted">Record whether food was used after the first alert, on expiry day, or expired unused. In a full ML version, these outcomes can become training data.</p>
+
+      {% if history %}
+        <div class="history-list">
+          {% for item in history %}
+            <div class="history-row">
+              <div class="history-symbol">✓</div>
+              <div><strong>{{ item.name }}</strong><small>Expiry {{ item.expiry_label }} · {{ item.outcome|replace('_',' ')|title }}</small></div>
+              <span class="history-remove">Auto-removal: {{ item.auto_delete_on }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="history-empty">
+          <span>↗</span>
+          <div><strong>No past-expiry items</strong><small>Items stay visible during the 24-hour grace period and in history until 7 days after expiry.</small></div>
+        </div>
+      {% endif %}
+
+      <div class="feedback-banner">
+        <span class="feedback-spark">✦</span>
+        <div>
+          <strong>Feedback loop</strong>
+          <p>Logged outcomes can help a future model learn household consumption patterns and tune reminder timing. This starter project records feedback but does not retrain an ML model automatically yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile push notification setup -->
+    <section id="notification-panel" class="panel" style="margin: 1rem 0;">
+      <div class="panel-heading">
+        <div>
+          <div class="eyebrow">STAY INFORMED</div>
+          <h2>Mobile notifications</h2>
+        </div>
+        <span class="heading-icon amber" aria-hidden="true">♧</span>
+      </div>
+
+      <p class="muted">Allow FreshTrack to prepare this browser for food-expiry push notifications.</p>
+
+      <button class="primary-button" id="enableNotifications" type="button">
+        Enable Mobile Notifications <span aria-hidden="true">→</span>
+      </button>
+
+      <p id="notificationStatus" class="privacy-note" role="status" aria-live="polite">
+        Notifications are not enabled yet.
+      </p>
+    </section>
+
+    <footer>FreshTrack <span>·</span> Smart Food Expiry Tracker <span>·</span> Mini project dashboard</footer>
+  </main>
+</div>
+
+<script>
+  // Existing photo upload filename display
+  const photoInput = document.getElementById('photo');
+  const fileName = document.getElementById('fileName');
+
+  if (photoInput && fileName) {
+    photoInput.addEventListener('change', () => {
+      fileName.textContent = photoInput.files.length
+        ? 'Selected: ' + photoInput.files[0].name
+        : '';
+    });
+  }
+
+  // Default purchase date and expiry-date minimum
+  const today = new Date();
+  const localToday = new Date(
+    today.getTime() - today.getTimezoneOffset() * 60000
+  ).toISOString().slice(0, 10);
+
+  const purchase = document.getElementById('purchase_date');
+  const expiry = document.getElementById('expiry_date');
+
+  if (purchase && !purchase.value) {
+    purchase.value = localToday;
+  }
+
+  if (purchase && expiry) {
+    expiry.min = purchase.value;
+    purchase.addEventListener('change', () => {
+      expiry.min = purchase.value;
+    });
+  }
+
+  // Notification permission and service-worker registration
+  const enableNotificationsButton =
+    document.getElementById('enableNotifications');
+  const notificationStatus =
+    document.getElementById('notificationStatus');
+
+  if (enableNotificationsButton && notificationStatus) {
+    enableNotificationsButton.addEventListener('click', async () => {
+      if (!('serviceWorker' in navigator) ||
+          !('PushManager' in window) ||
+          !('Notification' in window)) {
+        notificationStatus.textContent =
+          'This browser does not support web push notifications.';
+        return;
+      }
+
+      if (!window.isSecureContext) {
+        notificationStatus.textContent =
+          'Notifications require HTTPS, or localhost during local testing.';
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+
+        if (permission !== 'granted') {
+          notificationStatus.textContent =
+            'Permission was not granted. Allow notifications in browser settings.';
+          return;
+        }
+
+        await navigator.serviceWorker.register(
+          '/static/service-worker.js'
+        );
+        await navigator.serviceWorker.ready;
+
+        notificationStatus.textContent =
+          'Permission granted and service worker registered. Push subscription and server-side sending still need to be configured.';
+      } catch (error) {
+        console.error('Notification setup failed:', error);
+        notificationStatus.textContent =
+          'Could not set up notifications. Check the browser console and try again.';
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

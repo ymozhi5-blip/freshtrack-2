@@ -1,0 +1,7 @@
+__pycache__/
+.venv/
+venv/
+.env
+uploads/*
+!uploads/.gitkeep
+data/inventory.json
